@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/segment_bg"
+    android:orientation="horizontal" >
+
+    <TextView
+        android:id="@+id/tv_left"
+        android:gravity="center"
+        android:layout_width="80dp"
+        android:layout_height="35dp"
+        android:textColor="@color/tv_color_selector"
+        android:background="@drawable/tv_left_selector"
+        android:clickable="true"
+        android:text="推流" />
+    <View
+        android:background="@android:color/white"
+        android:layout_width="1dp"
+        android:layout_height="match_parent"/>
+    <TextView
+        android:textColor="@color/tv_color_selector"
+        android:id="@+id/tv_center"
+        android:gravity="center"
+        android:layout_width="80dp"
+        android:layout_height="35dp"
+        android:text="点播"
+        android:clickable="true"
+        android:background="@drawable/tv_center_selector" />
+    <View
+        android:background="@android:color/white"
+        android:layout_width="0.1dp"
+        android:layout_height="match_parent"/>
+    <TextView
+        android:textColor="@color/tv_color_selector"
+        android:id="@+id/tv_right"
+        android:gravity="center"
+        android:layout_width="80dp"
+        android:layout_height="35dp"
+        android:text="直播"
+        android:clickable="true"
+        android:background="@drawable/tv_right_selector" />
+
+</LinearLayout>

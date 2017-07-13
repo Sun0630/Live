@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:drawable="@drawable/tv_left_pressed" android:state_pressed="true"></item>
+    <!-- 当被选择的时候,显示下面的drawable,这个状态可以被代码setSelected为true触发 -->
+    <item android:state_selected="true" android:drawable="@drawable/tv_left_pressed"></item>
+    <item android:drawable="@drawable/tv_left_normal"></item>
+
+</selector>
