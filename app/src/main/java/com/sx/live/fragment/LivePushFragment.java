@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.sx.live.R;
 import com.tencent.rtmp.ITXLivePushListener;
@@ -28,6 +29,8 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
     private TXLivePusher mTxLivePusher;
     private TXLivePushConfig mTxLivePushConfig;
     private Button mBtnCameraChange;
+    private Button mTouchFocus;
+    private Button mFlashLight;
 
     @Nullable
     @Override
@@ -77,18 +80,58 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
             public void onClick(View v) {
                 mIsFrontCamera = !mIsFrontCamera;
                 //判断是否正在推流中
-                if (mTxLivePusher.isPushing()){
+                if (mTxLivePusher.isPushing()) {
                     //直接切换摄像头
                     mTxLivePusher.switchCamera();
-                }else {
+                } else {
                     mTxLivePushConfig.setFrontCamera(mIsFrontCamera);
                 }
                 //切换图片
-                mBtnCameraChange.setBackgroundResource(mIsFrontCamera?R.drawable.camera_change:R.drawable.camera_change2);
+                mBtnCameraChange.setBackgroundResource(mIsFrontCamera ? R.drawable.camera_change : R.drawable.camera_change2);
             }
         });
+
+        //对焦
+        mTouchFocus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                System.out.println("--------点击对焦--------");
+                //判断是否是自动对焦
+                if (mIsFrontCamera) {
+                    //前置摄像头不支持对焦
+                    return;
+                }
+                mIsTouchFocus = !mIsTouchFocus;
+                mTxLivePushConfig.setTouchFocus(mIsTouchFocus);
+                mTouchFocus.setBackgroundResource(mIsTouchFocus ? R.drawable.manual : R.drawable.automatic);
+                //判断如果处于推送中，对摄像头进行预览效果处理
+                if (mTxLivePusher.isPushing()) {
+                    mTxLivePusher.stopCameraPreview(false);
+                    mTxLivePusher.startCameraPreview(mCaptureView);
+                }
+                Toast.makeText(getContext(), mIsTouchFocus ? "开启手动对焦" : "开启自动对焦", Toast.LENGTH_SHORT).show();
+                System.out.println(mIsTouchFocus ? "开启手动对焦" : "开启自动对焦");
+            }
+        });
+
+        //设置闪光灯
+        mFlashLight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mFlashTurnOn = !mFlashTurnOn;
+                if (!mTxLivePusher.turnOnFlashLight(mFlashTurnOn)) {
+                    //如果闪光灯打开失败
+                    Toast.makeText(getActivity(), "未正常打开闪光灯:1,前置摄像头不支持闪光灯.2,没有开启摄像头", Toast.LENGTH_SHORT).show();
+                }
+
+                mFlashLight.setBackgroundResource(mFlashTurnOn ? R.drawable.flash_on : R.drawable.flash_off);
+            }
+        });
+
     }
 
+    private boolean mFlashTurnOn = false;
+    private boolean mIsTouchFocus = true;
     private boolean mIsFrontCamera = true;
 
     /**
@@ -142,7 +185,12 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
     private void initView(View view) {
         mCaptureView = (TXCloudVideoView) view.findViewById(R.id.video_view);
         mPlay = (Button) view.findViewById(R.id.btnPlay);
+        //切换摄像头
         mBtnCameraChange = (Button) view.findViewById(R.id.btnCameraChange);
+        //对焦按钮
+        mTouchFocus = (Button) view.findViewById(R.id.btnTouchFoucs);
+        //闪光灯开关
+        mFlashLight = (Button) view.findViewById(R.id.btnFlash);
     }
 
     @Override
@@ -150,6 +198,7 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
         //判断网络
         if (event == TXLiveConstants.PLAY_ERR_NET_DISCONNECT) {
             //网络断开，停止推流
+            Toast.makeText(getActivity(), "网络断开了", Toast.LENGTH_SHORT).show();
             mVideoPublish = false;
             stopPublishRtmp();
         }
