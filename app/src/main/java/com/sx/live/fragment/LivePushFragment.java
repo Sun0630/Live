@@ -1,12 +1,16 @@
 package com.sx.live.fragment;
 
 import android.os.Bundle;
+import android.support.annotation.IdRes;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.RadioGroup;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import com.sx.live.R;
@@ -22,7 +26,7 @@ import com.tencent.rtmp.ui.TXCloudVideoView;
  * @Description 推流端Fragment，
  */
 
-public class LivePushFragment extends Fragment implements ITXLivePushListener {
+public class LivePushFragment extends Fragment implements ITXLivePushListener, SeekBar.OnSeekBarChangeListener, RadioGroup.OnCheckedChangeListener {
 
     private TXCloudVideoView mCaptureView;
     private Button mPlay;
@@ -31,6 +35,20 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
     private Button mBtnCameraChange;
     private Button mTouchFocus;
     private Button mFlashLight;
+
+    //定义推送状态
+    private boolean mVideoPublish;
+
+    private boolean mFlashTurnOn = false;
+    private boolean mIsTouchFocus = true;
+    private boolean mIsFrontCamera = true;
+    private Button mBtnFaceBeauty;
+    private LinearLayout mFaceBeautyLayout;
+    private SeekBar mFaceBeautySeekBar;
+    private SeekBar mWhiteFaceSeekBar;
+    private Button mBtnBitRate;
+    private LinearLayout mBitRateLayout;
+    private RadioGroup mRgBitRate;
 
     @Nullable
     @Override
@@ -41,6 +59,13 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mFaceBeautyLayout.setVisibility(View.GONE);
+                mBitRateLayout.setVisibility(View.GONE);
+            }
+        });
         init(view);
     }
 
@@ -50,18 +75,44 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
         initListener();
     }
 
-    //定义推送状态
-    private boolean mVideoPublish;
+    private void initView(View view) {
+        mCaptureView = (TXCloudVideoView) view.findViewById(R.id.video_view);
+        mPlay = (Button) view.findViewById(R.id.btnPlay);
+        //切换摄像头
+        mBtnCameraChange = (Button) view.findViewById(R.id.btnCameraChange);
+        //对焦按钮
+        mTouchFocus = (Button) view.findViewById(R.id.btnTouchFoucs);
+        //闪光灯开关
+        mFlashLight = (Button) view.findViewById(R.id.btnFlash);
+        //美颜
+        mBtnFaceBeauty = (Button) view.findViewById(R.id.btnFaceBeauty);
+        mFaceBeautyLayout = (LinearLayout) view.findViewById(R.id.layoutFaceBeauty);
+        mFaceBeautySeekBar = (SeekBar) view.findViewById(R.id.beauty_seekbar);
+        mWhiteFaceSeekBar = (SeekBar) view.findViewById(R.id.whitening_seekbar);
+
+        //修改码率
+        mBtnBitRate = (Button) view.findViewById(R.id.btnBitrate);
+        mBitRateLayout = (LinearLayout) view.findViewById(R.id.layoutBitrate);
+        mRgBitRate = (RadioGroup) view.findViewById(R.id.resolutionRadioGroup);
+
+    }
+
+    private void initData() {
+        //1,初始化推流器
+        mTxLivePusher = new TXLivePusher(getContext());
+        //2，初始化推流配置
+        mTxLivePushConfig = new TXLivePushConfig();
+
+    }
 
     private void initListener() {
-
+        //开始进行推流
         mPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (!mVideoPublish) {
-
                     //1,修正码率
-                    fitBitRate();
+                    fitBitRate(R.id.radio_btn_auto);
                     //2，开始推流
                     startRTMP();
                     //3，将状态设置为true
@@ -128,11 +179,29 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
             }
         });
 
+        //美颜开关
+        mBtnFaceBeauty.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mFaceBeautyLayout.setVisibility(View.VISIBLE);
+            }
+        });
+        //设置seekBar
+        mFaceBeautySeekBar.setOnSeekBarChangeListener(this);
+        mWhiteFaceSeekBar.setOnSeekBarChangeListener(this);
+
+        //修改码率
+        mBtnBitRate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mBitRateLayout.setVisibility(View.VISIBLE);
+            }
+        });
+        mRgBitRate.setOnCheckedChangeListener(this);
+
     }
 
-    private boolean mFlashTurnOn = false;
-    private boolean mIsTouchFocus = true;
-    private boolean mIsFrontCamera = true;
+
 
     /**
      * 开始推流
@@ -154,44 +223,64 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
 
     /**
      * 修正码率
+     * @param checkedId
      */
-    private void fitBitRate() {
-        if (mTxLivePusher != null) {
-            //推送器不为空
-            //1.设置画质
-            mTxLivePushConfig.setVideoResolution(TXLiveConstants.VIDEO_RESOLUTION_TYPE_360_640);
-            //开启自适应码率
-            mTxLivePushConfig.setAutoAdjustBitrate(true);
-            //2，设置最大码率
-            mTxLivePushConfig.setMaxVideoBitrate(1000);
-            //3,设置最小
-            mTxLivePushConfig.setMinVideoBitrate(500);
-            //4,设置正常
-            mTxLivePushConfig.setVideoBitrate(700);
-            //将config配置给推送器
-            mTxLivePusher.setConfig(mTxLivePushConfig);
+    private void fitBitRate(int checkedId) {
+
+        switch (checkedId){
+            case R.id.radio_btn_auto:
+                if (mTxLivePusher != null) {
+                    //推送器不为空
+                    //1.设置画质
+                    mTxLivePushConfig.setVideoResolution(TXLiveConstants.VIDEO_RESOLUTION_TYPE_360_640);
+                    //开启自适应码率
+                    mTxLivePushConfig.setAutoAdjustBitrate(true);
+                    //2，设置最大码率
+                    mTxLivePushConfig.setMaxVideoBitrate(1000);
+                    //3,设置最小
+                    mTxLivePushConfig.setMinVideoBitrate(500);
+                    //4,设置正常
+                    mTxLivePushConfig.setVideoBitrate(700);
+                    //将config配置给推送器
+                    mTxLivePusher.setConfig(mTxLivePushConfig);
+                }
+                mBtnBitRate.setBackgroundResource(R.drawable.auto_bitrate);
+                break;
+            case R.id.radio_btn_fix_360p:
+                if (mTxLivePusher != null) {
+                    mTxLivePushConfig.setVideoResolution(TXLiveConstants.VIDEO_RESOLUTION_TYPE_360_640);
+                    //关闭自适应码率
+                    mTxLivePushConfig.setAutoAdjustBitrate(false);
+                    mTxLivePushConfig.setVideoBitrate(700);
+                    mTxLivePusher.setConfig(mTxLivePushConfig);
+                }
+                mBtnBitRate.setBackgroundResource(R.drawable.fix_bitrate);
+                break;
+            case R.id.radio_btn_fix_540p:
+                if (mTxLivePusher != null) {
+                    mTxLivePushConfig.setVideoResolution(TXLiveConstants.VIDEO_RESOLUTION_TYPE_540_960);
+                    //关闭自适应码率
+                    mTxLivePushConfig.setAutoAdjustBitrate(false);
+                    mTxLivePushConfig.setVideoBitrate(100);
+                    mTxLivePusher.setConfig(mTxLivePushConfig);
+                }
+                mBtnBitRate.setBackgroundResource(R.drawable.fix_bitrate);
+                break;
+
+            case R.id.radio_btn_fix_720p:
+                if (mTxLivePusher != null) {
+                    mTxLivePushConfig.setVideoResolution(TXLiveConstants.VIDEO_RESOLUTION_TYPE_720_1280);
+                    //关闭自适应码率
+                    mTxLivePushConfig.setAutoAdjustBitrate(false);
+                    mTxLivePushConfig.setVideoBitrate(1500);
+                    mTxLivePusher.setConfig(mTxLivePushConfig);
+                }
+                mBtnBitRate.setBackgroundResource(R.drawable.fix_bitrate);
+                break;
         }
     }
 
-    private void initData() {
-        //1,初始化推流器
-        mTxLivePusher = new TXLivePusher(getContext());
-        //2，初始化推送配置
-        mTxLivePushConfig = new TXLivePushConfig();
 
-
-    }
-
-    private void initView(View view) {
-        mCaptureView = (TXCloudVideoView) view.findViewById(R.id.video_view);
-        mPlay = (Button) view.findViewById(R.id.btnPlay);
-        //切换摄像头
-        mBtnCameraChange = (Button) view.findViewById(R.id.btnCameraChange);
-        //对焦按钮
-        mTouchFocus = (Button) view.findViewById(R.id.btnTouchFoucs);
-        //闪光灯开关
-        mFlashLight = (Button) view.findViewById(R.id.btnFlash);
-    }
 
     @Override
     public void onPushEvent(int event, Bundle param) {
@@ -250,5 +339,48 @@ public class LivePushFragment extends Fragment implements ITXLivePushListener {
         if (mCaptureView != null) {
             mCaptureView.onDestroy();
         }
+    }
+
+    private int mBeautyLevel;
+    private int mWhiteLevel;
+
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        switch (seekBar.getId()){
+            case R.id.beauty_seekbar://美颜
+                mBeautyLevel = progress;
+                break;
+            case R.id.whitening_seekbar://美白
+                mWhiteLevel = progress;
+                break;
+        }
+
+        if (mTxLivePusher != null) {
+            boolean beautyFilter = mTxLivePusher.setBeautyFilter(mBeautyLevel, mWhiteLevel);
+            if (!beautyFilter){
+                Toast.makeText(getActivity(), "当前设备不支持美颜", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+    }
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    /**
+     * 码率选择
+     * @param group
+     * @param checkedId
+     */
+    @Override
+    public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
+        fitBitRate(checkedId);
     }
 }
