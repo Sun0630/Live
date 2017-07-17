@@ -32,11 +32,11 @@ public class MainActivity extends FragmentActivity implements SegmentView.OnSegm
         mFragments.add(new LivePushFragment());
 
         LivePlayFragment playFragment = new LivePlayFragment();
-        playFragment.setLive(true);//直播
+        playFragment.setLive(false);//点播
         mFragments.add(playFragment);
 
         playFragment = new LivePlayFragment();
-        playFragment.setLive(false);//点播
+        playFragment.setLive(true);//直播
         mFragments.add(playFragment);
 
     }
