@@ -5,6 +5,19 @@
 
 <img src="/img/1.jpg">
 
+
+#### Android UI
+
+---
+> 通过手机摄像头采集视频数据
+
+<img width="360" src="/img/3.jpg">
+
+--- 
+> 拉取实时香港卫视rtmp视频流进行播放
+
+<img width="360" src="/img/2.jpg">
+
 ### 推流
 * 切换摄像头
 * 摄像头手动(自动)对焦
